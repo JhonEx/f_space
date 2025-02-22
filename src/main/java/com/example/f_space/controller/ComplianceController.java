@@ -7,6 +7,8 @@ import com.example.f_space.repository.IntakeRepository;
 import com.example.f_space.repository.ScheduleRepository;
 import com.example.f_space.service.ComplianceMetrics;
 import com.example.f_space.service.ComplianceService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -20,15 +22,18 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/compliance")
 @AllArgsConstructor
+@Tag(name = "Compliance", description = "Endpoints for calculating medication compliance")
 public class ComplianceController {
-
 
     private ComplianceService complianceService;
 
+    @Operation(summary = "Test Compliance Controller")
     @GetMapping("/test")
     public ResponseEntity<String> testController() {
         return ResponseEntity.ok("Controller is working!");
     }
+
+    @Operation(summary = "Get Compliance Rate", description = "Calculates and returns the compliance rate for a specific user and medication within a date range.")
 
     @GetMapping("/rate")
     public ResponseEntity<ComplianceMetrics> getComplianceRate(

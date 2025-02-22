@@ -11,13 +11,14 @@ import com.example.f_space.service.IntakeService;
 import com.example.f_space.service.ScheduleService;
 import com.example.f_space.service.SkipReasonService;
 import com.fasterxml.jackson.annotation.JsonFormat;
+import io.swagger.v3.oas.annotations.Operation;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
+import io.swagger.v3.oas.annotations.tags.Tag;
 import java.sql.Timestamp;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
@@ -26,6 +27,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/intakes")
 @AllArgsConstructor
+@Tag(name = "Intakes", description = "Manage medication intake records")
 public class IntakeController {
 
     private IntakeService intakeService;
@@ -34,11 +36,13 @@ public class IntakeController {
 
     private SkipReasonService skipReasonService;
 
+    @Operation(summary = "Record a new intake")
     @GetMapping("/test")
     public ResponseEntity<String> testController() {
         return ResponseEntity.ok("Controller is working!");
     }
 
+    @Operation(summary = "Get intakes by schedule ID")
     @PostMapping
     public ResponseEntity<String> recordIntake(@RequestBody IntakeRequest intakeRequest) {
         Schedule schedule = scheduleService.findById(intakeRequest.getScheduleId())
@@ -74,6 +78,7 @@ public class IntakeController {
     }
 
 
+    @Operation(summary = "Get schedule by ID")
     @GetMapping("/schedule/{scheduleId}")
     public ResponseEntity<List<Intake>> getIntakesBySchedule(@PathVariable Long scheduleId) {
         List<Intake> intakes = intakeService.getIntakesBySchedule(scheduleId);
@@ -83,6 +88,7 @@ public class IntakeController {
         return ResponseEntity.ok(intakes);
     }
 
+    @Operation(summary = "Get intakes by user ID")
     @GetMapping("/user/{userId}")
     public ResponseEntity<List<Intake>> getIntakesByUser(@PathVariable Long userId) {
         List<Intake> intakes = intakeService.getIntakesByUser(userId);

@@ -3,15 +3,16 @@ package com.example.f_space.controller;
 import com.example.f_space.controller.exceptionhandler.GlobalExceptionHandler;
 import com.example.f_space.model.Intake;
 import com.example.f_space.model.Schedule;
-import com.example.f_space.repository.IntakeRepository;
+
 import com.example.f_space.repository.ScheduleRepository;
 import com.example.f_space.service.AnalyticsService;
 import com.example.f_space.service.IntakeService;
 import com.fasterxml.jackson.annotation.JsonFormat;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.AllArgsConstructor;
 import lombok.Data;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.format.annotation.DateTimeFormat;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -24,6 +25,7 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/api/v1/analytics")
 @AllArgsConstructor
+@Tag(name = "Analytics", description = "Endpoints for compliance and moving averages analytics")
 public class AnalyticsController {
 
 
@@ -33,6 +35,7 @@ public class AnalyticsController {
 
     private ScheduleRepository scheduleRepository;
 
+    @Operation(summary = "Test the Analytics Controller")
     @GetMapping("/test")
     public ResponseEntity<String> testController() {
         return ResponseEntity.ok("Controller is working!");
