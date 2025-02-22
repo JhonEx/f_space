@@ -4,7 +4,9 @@ package com.example.f_space.controller;
 import com.example.f_space.controller.exceptionhandler.GlobalExceptionHandler;
 import com.example.f_space.model.Intake;
 import com.example.f_space.model.Schedule;
+import com.example.f_space.model.SkipReason;
 import com.example.f_space.repository.ScheduleRepository;
+import com.example.f_space.repository.SkipReasonRepository;
 import com.example.f_space.service.IntakeService;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Data;
@@ -27,6 +29,9 @@ public class IntakeController {
     @Autowired
     private ScheduleRepository scheduleRepository;
 
+    @Autowired
+    private SkipReasonRepository skipReasonRepository;
+
     @GetMapping("/test")
     public ResponseEntity<String> testController() {
         return ResponseEntity.ok("Controller is working!");
@@ -35,20 +40,33 @@ public class IntakeController {
     @PostMapping
     public ResponseEntity<String> recordIntake(@RequestBody IntakeRequest intakeRequest) {
         Schedule schedule = scheduleRepository.findById(intakeRequest.getScheduleId())
-                .orElseThrow(() -> new GlobalExceptionHandler.ResourceNotFoundException("Schedule not found with ID: " + intakeRequest.getScheduleId()));
-
-        if ("TAKEN".equalsIgnoreCase(intakeRequest.getStatus()) && intakeRequest.getTakenAt() == null) {
-            throw new GlobalExceptionHandler.ResourceNotFoundException("'taken_at' timestamp is required when status is TAKEN");
-        }
+                .orElseThrow(() -> new RuntimeException("Schedule not found with ID: " + intakeRequest.getScheduleId()));
 
         Intake intake = new Intake();
         intake.setSchedule(schedule);
         intake.setStatus(intakeRequest.getStatus());
-        if (intakeRequest.getTakenAt() != null) {
-            intake.setTakenAt(Timestamp.from(intakeRequest.getTakenAt().toInstant()));  // Convert ZonedDateTime to UTC Timestamp
+
+        if ("TAKEN".equalsIgnoreCase(intakeRequest.getStatus())) {
+            if (intakeRequest.getTakenAt() == null) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Taken time is required for TAKEN status");
+            }
+            intake.setTakenAt(Timestamp.from(intakeRequest.getTakenAt().toInstant()));
         }
         intake.setScheduledFor(Timestamp.from(ZonedDateTime.now(ZoneOffset.UTC).toInstant()));  // Store current time in UTC
-        intakeService.recordIntake(intake);
+
+            Intake savedIntake = intakeService.recordIntake(intake);
+
+        if ("SKIPPED".equalsIgnoreCase(intakeRequest.getStatus())) {
+            if (intakeRequest.getSkipReason() == null || intakeRequest.getSkipReason().isEmpty()) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Skip reason is required for SKIPPED status");
+            }
+            SkipReason reason = new SkipReason();
+            reason.setIntake(savedIntake); // Associate saved intake
+            reason.setReasonType("Patient Request");
+            reason.setSpecificReason(intakeRequest.getSkipReason());
+            reason.setAuthorizedBy("Doctor Approval");
+            skipReasonRepository.save(reason);
+        }
 
         return ResponseEntity.status(HttpStatus.CREATED).body("Intake recorded successfully");
     }
@@ -79,7 +97,8 @@ public class IntakeController {
         private String status;
 
         @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ssXXX")
-        private ZonedDateTime takenAt;  // Supports timezone-aware timestamps
+        private ZonedDateTime takenAt;
+        private String skipReason;
     }
 
 }
