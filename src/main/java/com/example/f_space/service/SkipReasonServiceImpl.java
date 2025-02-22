@@ -2,6 +2,7 @@ package com.example.f_space.service;
 
 import com.example.f_space.model.SkipReason;
 import com.example.f_space.repository.SkipReasonRepository;
+import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -9,9 +10,10 @@ import java.util.List;
 import java.util.Optional;
 
 @Service
+@AllArgsConstructor
 public class SkipReasonServiceImpl implements SkipReasonService {
 
-    @Autowired
+
     private SkipReasonRepository skipReasonRepository;
 
     @Override
@@ -44,5 +46,10 @@ public class SkipReasonServiceImpl implements SkipReasonService {
         SkipReason skipReason = skipReasonRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("SkipReason not found with id " + id));
         skipReasonRepository.delete(skipReason);
+    }
+
+    @Override
+    public void save(SkipReason skipReason) {
+        skipReasonRepository.save(skipReason);
     }
 }

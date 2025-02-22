@@ -9,6 +9,7 @@ import com.example.f_space.repository.IntakeRepository;
 import com.example.f_space.repository.MedicationRepository;
 import com.example.f_space.repository.ScheduleRepository;
 import com.example.f_space.repository.SkipReasonRepository;
+import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
@@ -20,18 +21,15 @@ import java.util.Arrays;
 import java.util.List;
 
 @Component
+@AllArgsConstructor
 public class DataLoader implements CommandLineRunner {
 
-    @Autowired
     private MedicationRepository medicationRepository;
 
-    @Autowired
     private ScheduleRepository scheduleRepository;
 
-    @Autowired
     private IntakeRepository intakeRepository;
 
-    @Autowired
     private SkipReasonRepository skipReasonRepository;
 
     @Override

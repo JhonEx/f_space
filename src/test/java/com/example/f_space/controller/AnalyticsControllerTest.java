@@ -2,56 +2,49 @@ package com.example.f_space.controller;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import static org.mockito.Mockito.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.junit.jupiter.api.Assertions.*;
+
 import com.example.f_space.controller.AnalyticsController;
 import com.example.f_space.controller.exceptionhandler.GlobalExceptionHandler;
 import com.example.f_space.model.Intake;
 import com.example.f_space.model.Medication;
 import com.example.f_space.model.Schedule;
-import com.example.f_space.model.SkipReason;
-import com.example.f_space.repository.SkipReasonRepository;
 import com.example.f_space.service.AnalyticsService;
 import com.example.f_space.service.IntakeService;
 import com.example.f_space.repository.ScheduleRepository;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
-
 import java.sql.Timestamp;
-import java.time.ZonedDateTime;
 import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
+
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+
+import java.sql.Time;
+
+import java.util.*;
+
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
-import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-
-
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import java.sql.Time;
-import java.util.Optional;
-
-
-@WebMvcTest(IntakeController.class)
-class IntakeControllerTest {
+@WebMvcTest(AnalyticsController.class)
+public class AnalyticsControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
+
+    @MockBean
+    private AnalyticsService analyticsService;
 
     @MockBean
     private IntakeService intakeService;
@@ -59,24 +52,24 @@ class IntakeControllerTest {
     @MockBean
     private ScheduleRepository scheduleRepository;
 
-    @MockBean
-    private SkipReasonRepository skipReasonRepository;
-
     @Autowired
     private ObjectMapper objectMapper;
 
     private Schedule sampleSchedule;
     private Intake sampleIntake;
 
+    private ZonedDateTime now = ZonedDateTime.now(ZoneOffset.UTC);
+
     @BeforeEach
     void setUp() {
-        // Mock sample schedule from DataLoader (Paracetamol, userId=1)
-
+        // Create Medications
         Medication paracetamol = new Medication();
+        paracetamol.setId(1L);
         paracetamol.setName("Paracetamol");
         paracetamol.setDosageForm("Tablet");
         paracetamol.setStrength("500mg");
 
+        // Mock sample schedule (userId=1, medicationId=1, Paracetamol)
         sampleSchedule = new Schedule();
         sampleSchedule.setId(1L);
         sampleSchedule.setUserId(1L);
@@ -84,161 +77,143 @@ class IntakeControllerTest {
         sampleSchedule.setScheduledTime(Time.valueOf("08:00:00"));
         sampleSchedule.setDaysOfWeek(Arrays.asList(1, 3, 5));
 
-        // Mock sample intake
+        // Mock sample intake (TAKEN status)
         sampleIntake = new Intake();
         sampleIntake.setId(1L);
         sampleIntake.setSchedule(sampleSchedule);
         sampleIntake.setStatus("TAKEN");
-        sampleIntake.setScheduledFor(Timestamp.from(ZonedDateTime.now().toInstant()));
-        sampleIntake.setTakenAt(Timestamp.from(ZonedDateTime.now().toInstant()));
+        sampleIntake.setScheduledFor(Timestamp.from(now.toInstant()));
+        sampleIntake.setTakenAt(Timestamp.from(now.toInstant()));
     }
 
     @Test
     void testTestController() throws Exception {
-        mockMvc.perform(get("/api/v1/intakes/test"))
+        mockMvc.perform(get("/api/v1/analytics/test"))
                 .andExpect(status().isOk())
                 .andExpect(content().string("Controller is working!"));
     }
 
     @Test
-    void testRecordIntake_TakenStatus_Success() throws Exception {
-        IntakeController.IntakeRequest request = new IntakeController.IntakeRequest();
-        request.setScheduleId(1L);
-        request.setStatus("TAKEN");
-        request.setTakenAt(ZonedDateTime.parse("2025-02-22T14:00:00Z"));
+    void testGetMovingAverages_SMA_Success() throws Exception {
+        // Mock data for SMA (Simple Moving Average) based on the GET request (7 days)
+        List<Schedule> schedules = Arrays.asList(sampleSchedule);
+        List<Intake> intakes = createIntakesFor7Days(sampleSchedule, "TAKEN");
 
-        when(scheduleRepository.findById(1L)).thenReturn(Optional.of(sampleSchedule));
-        when(intakeService.recordIntake(any(Intake.class))).thenReturn(sampleIntake);
+        when(scheduleRepository.findByUserId(1L)).thenReturn(schedules);
+        when(intakeService.getIntakesBySchedule(1L)).thenReturn(intakes);
 
-        mockMvc.perform(post("/api/v1/intakes")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isCreated())
-                .andExpect(content().string("Intake recorded successfully"));
+        List<ZonedDateTime> dates = intakes.stream()
+                .map(i -> i.getScheduledFor().toInstant().atZone(ZoneOffset.UTC))
+                .distinct()
+                .collect(Collectors.toList());
+        List<Double> dailyCounts = dates.stream()
+                .map(date -> (double) intakes.stream()
+                        .filter(i -> i.getScheduledFor().toInstant().atZone(ZoneOffset.UTC).toLocalDate().equals(date.toLocalDate()))
+                        .count())
+                .collect(Collectors.toList());
+        List<Double> smaValues = Arrays.asList(1.0); // SMA for period=7, assuming one intake per day
 
-        verify(intakeService, times(1)).recordIntake(any(Intake.class));
-        verify(skipReasonRepository, never()).save(any(SkipReason.class));
+        when(analyticsService.calculateMovingAverage(dailyCounts, 7, "SMA")).thenReturn(smaValues);
+
+        mockMvc.perform(get("/api/v1/analytics/moving-averages")
+                        .param("userId", "1")
+                        .param("medicationId", "1")
+                        .param("type", "SMA")
+                        .param("days", "7")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.type").value("SMA"))
+                .andExpect(jsonPath("$.period").value(7))
+                .andExpect(jsonPath("$.values[0]").value(1.0))
+                .andExpect(jsonPath("$.dates").isArray());
+
+        verify(scheduleRepository, times(1)).findByUserId(1L);
+        verify(intakeService, times(1)).getIntakesBySchedule(1L);
+        verify(analyticsService, times(1)).calculateMovingAverage(dailyCounts, 7, "SMA");
     }
 
-    @Test
-    void testRecordIntake_TakenStatus_MissingTakenAt() throws Exception {
-        IntakeController.IntakeRequest request = new IntakeController.IntakeRequest();
-        request.setScheduleId(1L);
-        request.setStatus("TAKEN");
-        // takenAt is null
-
-        when(scheduleRepository.findById(1L)).thenReturn(Optional.of(sampleSchedule));
-
-        mockMvc.perform(post("/api/v1/intakes")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isBadRequest())
-                .andExpect(content().string("Taken time is required for TAKEN status"));
-
-        verify(intakeService, never()).recordIntake(any(Intake.class));
-    }
 
     @Test
-    void testRecordIntake_SkippedStatus_Success() throws Exception {
-        IntakeController.IntakeRequest request = new IntakeController.IntakeRequest();
-        request.setScheduleId(1L);
-        request.setStatus("SKIPPED");
-        request.setSkipReason("Patient felt dizzy and chose to skip the dose.");
+    void testGetMovingAverages_NoSchedulesFound() throws Exception {
+        when(scheduleRepository.findByUserId(1L)).thenReturn(Collections.emptyList());
 
-        when(scheduleRepository.findById(1L)).thenReturn(Optional.of(sampleSchedule));
-        when(intakeService.recordIntake(any(Intake.class))).thenReturn(sampleIntake);
-        when(skipReasonRepository.save(any(SkipReason.class))).thenReturn(new SkipReason());
-
-        mockMvc.perform(post("/api/v1/intakes")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isCreated())
-                .andExpect(content().string("Intake recorded successfully"));
-
-        verify(intakeService, times(1)).recordIntake(any(Intake.class));
-        verify(skipReasonRepository, times(1)).save(any(SkipReason.class));
-    }
-
-    @Test
-    void testRecordIntake_SkippedStatus_MissingSkipReason() throws Exception {
-        IntakeController.IntakeRequest request = new IntakeController.IntakeRequest();
-        request.setScheduleId(1L);
-        request.setStatus("SKIPPED");
-        // skipReason is null
-
-        when(scheduleRepository.findById(1L)).thenReturn(Optional.of(sampleSchedule));
-        when(intakeService.recordIntake(any(Intake.class))).thenReturn(sampleIntake);
-
-        mockMvc.perform(post("/api/v1/intakes")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isBadRequest())
-                .andExpect(content().string("Skip reason is required for SKIPPED status"));
-
-        verify(skipReasonRepository, never()).save(any(SkipReason.class));
-    }
-
-    @Test
-    void testRecordIntake_ScheduleNotFound() throws Exception {
-        IntakeController.IntakeRequest request = new IntakeController.IntakeRequest();
-        request.setScheduleId(999L);
-        request.setStatus("TAKEN");
-        request.setTakenAt(ZonedDateTime.now());
-
-        when(scheduleRepository.findById(999L)).thenReturn(Optional.empty());
-
-        mockMvc.perform(post("/api/v1/intakes")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().is5xxServerError()) // RuntimeException triggers 500
-                .andExpect(result -> assertTrue(result.getResolvedException() instanceof RuntimeException))
-                .andExpect(result -> assertEquals("Schedule not found with ID: 999",
+        mockMvc.perform(get("/api/v1/analytics/moving-averages")
+                        .param("userId", "1")
+                        .param("medicationId", "1")
+                        .param("type", "SMA")
+                        .param("days", "7")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNotFound())
+                .andExpect(result -> assertTrue(result.getResolvedException() instanceof GlobalExceptionHandler.ResourceNotFoundException))
+                .andExpect(result -> assertEquals("No schedules found for user ID: 1",
                         result.getResolvedException().getMessage()));
 
-        verify(intakeService, never()).recordIntake(any(Intake.class));
+        verify(scheduleRepository, times(1)).findByUserId(1L);
+        verify(intakeService, never()).getIntakesBySchedule(anyLong());
+        verify(analyticsService, never()).calculateMovingAverage(anyList(), anyInt(), anyString());
     }
 
     @Test
-    void testGetIntakesBySchedule_Success() throws Exception {
-        when(intakeService.getIntakesBySchedule(1L)).thenReturn(Arrays.asList(sampleIntake));
-
-        mockMvc.perform(get("/api/v1/intakes/schedule/1"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].status").value("TAKEN"));
-
-        verify(intakeService, times(1)).getIntakesBySchedule(1L);
-    }
-
-    @Test
-    void testGetIntakesBySchedule_NoIntakesFound() throws Exception {
+    void testGetMovingAverages_NoIntakesFound() throws Exception {
+        List<Schedule> schedules = Arrays.asList(sampleSchedule);
+        when(scheduleRepository.findByUserId(1L)).thenReturn(schedules);
         when(intakeService.getIntakesBySchedule(1L)).thenReturn(Collections.emptyList());
 
-        mockMvc.perform(get("/api/v1/intakes/schedule/1"))
+        mockMvc.perform(get("/api/v1/analytics/moving-averages")
+                        .param("userId", "1")
+                        .param("medicationId", "1")
+                        .param("type", "SMA")
+                        .param("days", "7")
+                        .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isNotFound())
                 .andExpect(result -> assertTrue(result.getResolvedException() instanceof GlobalExceptionHandler.ResourceNotFoundException))
-                .andExpect(result -> assertEquals("No intakes found for schedule ID: 1",
+                .andExpect(result -> assertEquals("No intakes found for medication ID: 1 and user ID: 1",
                         result.getResolvedException().getMessage()));
+
+        verify(scheduleRepository, times(1)).findByUserId(1L);
+        verify(intakeService, times(1)).getIntakesBySchedule(1L);
+        verify(analyticsService, never()).calculateMovingAverage(anyList(), anyInt(), anyString());
     }
 
     @Test
-    void testGetIntakesByUser_Success() throws Exception {
-        when(intakeService.getIntakesByUser(1L)).thenReturn(Arrays.asList(sampleIntake));
+    void testGetMovingAverages_InsufficientData() throws Exception {
+        List<Schedule> schedules = Arrays.asList(sampleSchedule);
+        List<Intake> intakes = Collections.singletonList(sampleIntake); // Only one intake
 
-        mockMvc.perform(get("/api/v1/intakes/user/1"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].status").value("TAKEN"));
+        when(scheduleRepository.findByUserId(1L)).thenReturn(schedules);
+        when(intakeService.getIntakesBySchedule(1L)).thenReturn(intakes);
 
-        verify(intakeService, times(1)).getIntakesByUser(1L);
+        List<ZonedDateTime> dates = Collections.singletonList(sampleIntake.getScheduledFor().toInstant().atZone(ZoneOffset.UTC));
+        List<Double> dailyCounts = Collections.singletonList(1.0); // Only one data point
+
+        mockMvc.perform(get("/api/v1/analytics/moving-averages")
+                        .param("userId", "1")
+                        .param("medicationId", "1")
+                        .param("type", "SMA")
+                        .param("days", "7")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNotFound())
+                .andExpect(result -> assertTrue(result.getResolvedException() instanceof GlobalExceptionHandler.ResourceNotFoundException))
+                .andExpect(result -> assertEquals("Not enough data points to calculate SMA for period: 7",
+                        result.getResolvedException().getMessage()));
+
+        verify(scheduleRepository, times(1)).findByUserId(1L);
+        verify(intakeService, times(1)).getIntakesBySchedule(1L);
+        verify(analyticsService, never()).calculateMovingAverage(anyList(), anyInt(), anyString());
     }
 
     @Test
-    void testGetIntakesByUser_NoIntakesFound() throws Exception {
-        when(intakeService.getIntakesByUser(1L)).thenReturn(Collections.emptyList());
-
-        mockMvc.perform(get("/api/v1/intakes/user/1"))
-                .andExpect(status().isNotFound())
-                .andExpect(result -> assertTrue(result.getResolvedException() instanceof GlobalExceptionHandler.ResourceNotFoundException))
-                .andExpect(result -> assertEquals("No intakes found for user ID: 1",
-                        result.getResolvedException().getMessage()));
+    private List<Intake> createIntakesFor7Days(Schedule schedule, String status) {
+        List<Intake> intakes = new ArrayList<>();
+        for (int i = 0; i < 7; i++) {
+            Intake intake = new Intake();
+            intake.setId((long) (i + 1));
+            intake.setSchedule(schedule);
+            intake.setStatus(status);
+            intake.setScheduledFor(Timestamp.from(now.minusDays(i).toInstant()));
+            intake.setTakenAt(Timestamp.from(now.minusDays(i).toInstant()));
+            intakes.add(intake);
+        }
+        return intakes;
     }
 }

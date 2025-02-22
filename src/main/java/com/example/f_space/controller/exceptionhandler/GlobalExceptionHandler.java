@@ -17,7 +17,7 @@ import java.util.Map;
 @ControllerAdvice
 public class GlobalExceptionHandler {
 
-    // Handle resource not found exception
+
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<Object> handleResourceNotFound(ResourceNotFoundException ex) {
         Map<String, Object> body = new HashMap<>();
@@ -28,7 +28,6 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(body, HttpStatus.NOT_FOUND);
     }
 
-    // Handle bad request exceptions (e.g., invalid argument types)
     @ExceptionHandler({MethodArgumentTypeMismatchException.class, HttpMessageNotReadableException.class})
     public ResponseEntity<Object> handleBadRequest(Exception ex) {
         Map<String, Object> body = new HashMap<>();
@@ -39,7 +38,7 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(body, HttpStatus.BAD_REQUEST);
     }
 
-    // Handle validation errors
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Object> handleValidationErrors(MethodArgumentNotValidException ex) {
         Map<String, Object> body = new HashMap<>();
@@ -50,7 +49,6 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(body, HttpStatus.BAD_REQUEST);
     }
 
-    // Handle database access issues
     @ExceptionHandler(DataAccessException.class)
     public ResponseEntity<Object> handleDatabaseError(DataAccessException ex) {
         Map<String, Object> body = new HashMap<>();
@@ -61,7 +59,6 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(body, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
-    // Handle all other exceptions
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Object> handleGeneralException(Exception ex) {
         Map<String, Object> body = new HashMap<>();
@@ -72,7 +69,6 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(body, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
-    // Custom exception for resource not found
     public static class ResourceNotFoundException extends RuntimeException {
         public ResourceNotFoundException(String message) {
             super(message);

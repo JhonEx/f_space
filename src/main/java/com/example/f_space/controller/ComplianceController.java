@@ -7,6 +7,7 @@ import com.example.f_space.repository.IntakeRepository;
 import com.example.f_space.repository.ScheduleRepository;
 import com.example.f_space.service.ComplianceMetrics;
 import com.example.f_space.service.ComplianceService;
+import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
@@ -18,9 +19,10 @@ import java.time.LocalDateTime;
 import java.util.List;
 @RestController
 @RequestMapping("/api/v1/compliance")
+@AllArgsConstructor
 public class ComplianceController {
 
-    @Autowired
+
     private ComplianceService complianceService;
 
     @GetMapping("/test")

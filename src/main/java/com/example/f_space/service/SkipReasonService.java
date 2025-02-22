@@ -12,4 +12,8 @@ public interface SkipReasonService {
     List<SkipReason> getSkipReasonsByIntakeId(Long intakeId);
     SkipReason updateSkipReason(Long id, SkipReason skipReasonDetails);
     void deleteSkipReason(Long id);
+
+    void save(SkipReason skipReason);
+
+
 }

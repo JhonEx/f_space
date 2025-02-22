@@ -4,6 +4,7 @@ import com.example.f_space.model.Intake;
 import com.example.f_space.model.Schedule;
 import com.example.f_space.repository.IntakeRepository;
 import com.example.f_space.repository.ScheduleRepository;
+import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
@@ -18,12 +19,13 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
+@AllArgsConstructor
 public class ComplianceServiceImpl implements ComplianceService{
 
-    @Autowired
+
     private IntakeRepository intakeRepository;
 
-    @Autowired
+
     private ScheduleRepository scheduleRepository;
 
     @Override

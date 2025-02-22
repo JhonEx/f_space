@@ -8,6 +8,7 @@ import com.example.f_space.repository.ScheduleRepository;
 import com.example.f_space.service.AnalyticsService;
 import com.example.f_space.service.IntakeService;
 import com.fasterxml.jackson.annotation.JsonFormat;
+import lombok.AllArgsConstructor;
 import lombok.Data;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -22,13 +23,14 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/v1/analytics")
+@AllArgsConstructor
 public class AnalyticsController {
 
-    @Autowired
+
     private AnalyticsService analyticsService;
-    @Autowired
+
     private IntakeService intakeService;
-    @Autowired
+
     private ScheduleRepository scheduleRepository;
 
     @GetMapping("/test")
@@ -52,7 +54,7 @@ public class AnalyticsController {
                 .filter(schedule -> schedule.getMedication().getId().equals(medicationId))
                 .flatMap(schedule -> intakeService.getIntakesBySchedule(schedule.getId()).stream())
                 .filter(intake -> "TAKEN".equalsIgnoreCase(intake.getStatus()))
-                .sorted((i1, i2) -> i1.getScheduledFor().compareTo(i2.getScheduledFor()))
+                .sorted(Comparator.comparing(Intake::getScheduledFor))
                 .collect(Collectors.toList());
 
         if (intakes.isEmpty()) {

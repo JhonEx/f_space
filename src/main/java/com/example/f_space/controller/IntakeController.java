@@ -8,7 +8,10 @@ import com.example.f_space.model.SkipReason;
 import com.example.f_space.repository.ScheduleRepository;
 import com.example.f_space.repository.SkipReasonRepository;
 import com.example.f_space.service.IntakeService;
+import com.example.f_space.service.ScheduleService;
+import com.example.f_space.service.SkipReasonService;
 import com.fasterxml.jackson.annotation.JsonFormat;
+import lombok.AllArgsConstructor;
 import lombok.Data;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -22,15 +25,14 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/intakes")
+@AllArgsConstructor
 public class IntakeController {
 
-    @Autowired
     private IntakeService intakeService;
-    @Autowired
-    private ScheduleRepository scheduleRepository;
 
-    @Autowired
-    private SkipReasonRepository skipReasonRepository;
+    private ScheduleService scheduleService;
+
+    private SkipReasonService skipReasonService;
 
     @GetMapping("/test")
     public ResponseEntity<String> testController() {
@@ -39,7 +41,7 @@ public class IntakeController {
 
     @PostMapping
     public ResponseEntity<String> recordIntake(@RequestBody IntakeRequest intakeRequest) {
-        Schedule schedule = scheduleRepository.findById(intakeRequest.getScheduleId())
+        Schedule schedule = scheduleService.findById(intakeRequest.getScheduleId())
                 .orElseThrow(() -> new RuntimeException("Schedule not found with ID: " + intakeRequest.getScheduleId()));
 
         Intake intake = new Intake();
@@ -65,7 +67,7 @@ public class IntakeController {
             reason.setReasonType("Patient Request");
             reason.setSpecificReason(intakeRequest.getSkipReason());
             reason.setAuthorizedBy("Doctor Approval");
-            skipReasonRepository.save(reason);
+            skipReasonService.save(reason);
         }
 
         return ResponseEntity.status(HttpStatus.CREATED).body("Intake recorded successfully");
@@ -89,7 +91,6 @@ public class IntakeController {
         }
         return ResponseEntity.ok(intakes);
     }
-
 
     @Data
     public static class IntakeRequest {
