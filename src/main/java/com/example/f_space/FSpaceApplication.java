@@ -14,7 +14,6 @@ public class FSpaceApplication {
     public static void main(String[] args) {
         SpringApplication.run(FSpaceApplication.class, args);
     }
-
     @PostConstruct
     public void init() {
         TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
