@@ -20,5 +20,4 @@ public class FSpaceApplication {
         TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
     }
 
-
 }
