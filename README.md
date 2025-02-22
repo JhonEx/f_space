@@ -70,6 +70,29 @@ This project includes:
    ```bash
    git clone https://github.com/JhonEx/f_space.git
 
+## API Endpoints
+The application exposes the following endpoints (accessible at `http://localhost:8080`):
+
+### Analytics Endpoints
+1. **Get Moving Averages (SMA)**
+    - `GET /api/v1/analytics/moving-averages?userId=1&medicationId=1&type=SMA&days=7`
+    - Description: Retrieves the Simple Moving Average for medication intake counts.
+
+2. **Get Moving Averages (WMA)**
+    - `GET /api/v1/analytics/moving-averages?userId=1&medicationId=1&type=WMA&days=7`
+    - Description: Retrieves the Weighted Moving Average for medication intake counts.
+
+3. **Get Moving Averages (EMA)**
+    - `GET /api/v1/analytics/moving-averages?userId=1&medicationId=1&type=EMA&days=7`
+    - Description: Retrieves the Exponential Moving Average for medication intake counts.
+
+### Intake Endpoints
+4. **Get Intakes by User**
+    - `GET /api/v1/intakes/user/1`
+    - Description: Retrieves a list of intakes for a specific user.
+
+For detailed responses, parameters, and error handling, refer to the [API Endpoints Documentation](#) or use Swagger UI at `http://localhost:8080/swagger-ui.html`.
+
 ### 📦 API Docs
 
 - Access swagger in following URL http://localhost:8080/swagger-ui.html
