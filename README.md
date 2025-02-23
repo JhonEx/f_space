@@ -67,8 +67,7 @@ This project includes:
 1. **Database config**
 - H2 in memory database is set by default. To enable Postgres, go to properties file and uncomment lines for postgres.
 - Resources folder contain script to improve indexing for postgres db.
-   ```bash
-   git clone https://github.com/JhonEx/f_space.git
+
 
 ## API Endpoints
 The application exposes the following endpoints (accessible at `http://localhost:8080`):

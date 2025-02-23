@@ -12,6 +12,8 @@ import com.example.f_space.service.ScheduleService;
 import com.example.f_space.service.SkipReasonService;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -88,8 +90,12 @@ public class IntakeController {
         return ResponseEntity.ok(intakes);
     }
 
-    @Operation(summary = "Get intakes by user ID")
     @GetMapping("/user/{userId}")
+    @Operation(summary = "Get intakes by user", description = "Retrieves a list of intakes for a specific user")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Successful operation"),
+            @ApiResponse(responseCode = "404", description = "No intakes found for the user")
+    })
     public ResponseEntity<List<Intake>> getIntakesByUser(@PathVariable Long userId) {
         List<Intake> intakes = intakeService.getIntakesByUser(userId);
         if (intakes.isEmpty()) {

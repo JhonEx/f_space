@@ -9,6 +9,8 @@ import com.example.f_space.service.AnalyticsService;
 import com.example.f_space.service.IntakeService;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -16,7 +18,6 @@ import lombok.Data;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.*;
@@ -28,20 +29,30 @@ import java.util.stream.Collectors;
 @Tag(name = "Analytics", description = "Endpoints for compliance and moving averages analytics")
 public class AnalyticsController {
 
-
     private AnalyticsService analyticsService;
 
     private IntakeService intakeService;
 
     private ScheduleRepository scheduleRepository;
 
-    @Operation(summary = "Test the Analytics Controller")
+
     @GetMapping("/test")
+    @Operation(summary = "Test the API endpoint", description = "Returns a simple confirmation that the controller is working")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Successful operation"),
+            @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
     public ResponseEntity<String> testController() {
         return ResponseEntity.ok("Controller is working!");
     }
 
     @GetMapping("/moving-averages")
+    @Operation(summary = "Get moving averages for medication intakes", description = "Calculates SMA, EMA, or WMA for medication intake counts over a specified period")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Successful operation"),
+            @ApiResponse(responseCode = "404", description = "No schedules or intakes found, or insufficient data"),
+            @ApiResponse(responseCode = "400", description = "Invalid moving average type")
+    })
     public ResponseEntity<MovingAverageResponse> getMovingAverages(
             @RequestParam Long userId,
             @RequestParam Long medicationId,
